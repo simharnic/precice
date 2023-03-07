@@ -148,10 +148,10 @@ target_sources(testprecice
 set(PRECICE_TEST_SUITES {})
 """
 BENCHMARKS_BASE = """#
-# This file lists all benchmarks that will be compiles into benchprecice
+# This file lists all benchmarks that will be compiles into precice-bench
 #
 
-target_sources(benchprecice
+target_sources(precice-bench
     PRIVATE
     {}
     )

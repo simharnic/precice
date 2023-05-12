@@ -1221,6 +1221,7 @@ void SolverInterfaceImpl::pushProfilingSection(std::string_view sectionName)
 
 void SolverInterfaceImpl::popProfilingSection()
 {
+  PRECICE_CHECK(!_userEventStack.empty(), "There are no profiling events to pop. The user-event stack is empty.")
   _userEventStack.pop_back();
 }
 

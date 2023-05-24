@@ -15,6 +15,7 @@
 #include "mapping/NearestProjectionMapping.hpp"
 #include "mapping/PetRadialBasisFctMapping.hpp"
 #include "mapping/RadialBasisFctMapping.hpp"
+#include "mapping/RadialGeoMultiscaleMapping.hpp"
 #include "mapping/impl/BasisFunctions.hpp"
 #include "mesh/Mesh.hpp"
 #include "mesh/SharedPointer.hpp"
@@ -63,6 +64,9 @@ MappingConfiguration::MappingConfiguration(
   auto attrMultiscaleType = XMLAttribute<std::string>("type")
                                 .setDocumentation("Type of a geometric multiscale mapping (spread or collect).")
                                 .setOptions({"spread", "collect"});
+  auto attrAxis = XMLAttribute<std::string>("axis")
+                      .setDocumentation("Main axis along radial geometric multiscale mapping happens (X, Y or Z).")
+                      .setOptions({"X", "Y", "Z"});
 
   XMLTag::Occurrence occ = XMLTag::OCCUR_ARBITRARY;
   std::list<XMLTag>  tags;
@@ -150,6 +154,14 @@ MappingConfiguration::MappingConfiguration(
     tag.setDocumentation("Axial geometric multiscale mapping.");
     tag.addAttribute(attrRadius);
     tag.addAttribute(attrMultiscaleType);
+    tag.addAttribute(attrAxis);
+    tags.push_back(tag);
+  }
+  {
+    XMLTag tag(*this, VALUE_RADIAL_GEOMETRIC_MULTISCALE, occ, TAG);
+    tag.setDocumentation("Radial geometric multiscale mapping.");
+    tag.addAttribute(attrAxis);
+    tag.addAttribute(attrMultiscaleType);
     tags.push_back(tag);
   }
 
@@ -204,6 +216,7 @@ void MappingConfiguration::xmlTagCallback(
     Preallocation preallocation  = Preallocation::TREE;
     double        radius         = 0.0;
     std::string   multiscaleType = "undefined";
+    std::string   multiscaleAxis = "undefined";
 
     if (tag.hasAttribute(ATTR_SHAPE_PARAM)) {
       shapeParameter = tag.getDoubleAttributeValue(ATTR_SHAPE_PARAM);
@@ -251,6 +264,9 @@ void MappingConfiguration::xmlTagCallback(
     if (tag.hasAttribute("radius")) {
       radius = tag.getDoubleAttributeValue("radius");
     }
+    if (tag.hasAttribute("axis")) {
+      multiscaleAxis = tag.getStringAttributeValue("axis");
+    }
     if (tag.hasAttribute("type")) {
       multiscaleType = tag.getStringAttributeValue("type");
     }
@@ -276,7 +292,7 @@ void MappingConfiguration::xmlTagCallback(
                                                         xDead, yDead, zDead,
                                                         useLU,
                                                         polynomial, preallocation,
-                                                        radius, multiscaleType);
+                                                        radius, multiscaleAxis, multiscaleType);
     checkDuplicates(configuredMapping);
     _mappings.push_back(configuredMapping);
   }
@@ -309,6 +325,7 @@ MappingConfiguration::ConfiguredMapping MappingConfiguration::createMapping(
     Polynomial                       polynomial,
     Preallocation                    preallocation,
     double                           radius,
+    const std::string &              multiscaleAxis,
     const std::string &              multiscaleType) const
 {
   PRECICE_TRACE(direction, type, timing, rbfParameter.value);
@@ -451,8 +468,41 @@ MappingConfiguration::ConfiguredMapping MappingConfiguration::createMapping(
       } else {
         PRECICE_ERROR("Unknown geometric multiscale type \"{}\". Known types are \"spread\" and \"collect\".", multiscaleTypeValue);
       }
+      AxialGeoMultiscaleMapping::MultiscaleAxis multiscaleAxisValue;
+      if (multiscaleAxis == "X") {
+        multiscaleAxisValue = AxialGeoMultiscaleMapping::X;
+      } else if (multiscaleAxis == "Y") {
+        multiscaleAxisValue = AxialGeoMultiscaleMapping::Y;
+      } else if (multiscaleAxis == "Z") {
+        multiscaleAxisValue = AxialGeoMultiscaleMapping::Z;
+      } else {
+        PRECICE_ERROR("Unknown axis \"{}\". Known axes are \"X\", \"Y\", and \"Z\".", multiscaleAxis);
+      }
       configuredMapping.mapping = PtrMapping(
-          new AxialGeoMultiscaleMapping(constraintValue, dimensions, multiscaleTypeValue, radius));
+          new AxialGeoMultiscaleMapping(constraintValue, dimensions, multiscaleTypeValue, multiscaleAxisValue, radius));
+      configuredMapping.isRBF = false;
+    } else if (type == VALUE_RADIAL_GEOMETRIC_MULTISCALE) {
+
+      RadialGeoMultiscaleMapping::MultiscaleType multiscaleTypeValue;
+      if (multiscaleType == "spread") {
+        multiscaleTypeValue = RadialGeoMultiscaleMapping::SPREAD;
+      } else if (multiscaleType == "collect") {
+        multiscaleTypeValue = RadialGeoMultiscaleMapping::COLLECT;
+      } else {
+        PRECICE_ERROR("Unknown geometric multiscale type \"{}\". Known types are \"spread\" and \"collect\".", multiscaleType);
+      }
+      RadialGeoMultiscaleMapping::MultiscaleAxis multiscaleAxisValue;
+      if (multiscaleAxis == "X") {
+        multiscaleAxisValue = RadialGeoMultiscaleMapping::X;
+      } else if (multiscaleAxis == "Y") {
+        multiscaleAxisValue = RadialGeoMultiscaleMapping::Y;
+      } else if (multiscaleAxis == "Z") {
+        multiscaleAxisValue = RadialGeoMultiscaleMapping::Z;
+      } else {
+        PRECICE_ERROR("Unknown axis \"{}\". Known axes are \"X\", \"Y\", and \"Z\".", multiscaleAxis);
+      }
+      configuredMapping.mapping = PtrMapping(
+          new RadialGeoMultiscaleMapping(constraintValue, dimensions, multiscaleTypeValue, multiscaleAxisValue));
       configuredMapping.isRBF = false;
     } else {
       std::cout << type;
@@ -516,8 +566,41 @@ MappingConfiguration::ConfiguredMapping MappingConfiguration::createMapping(
       } else {
         PRECICE_ERROR("Unknown geometric multiscale type \"{}\". Known types are \"spread\" and \"collect\".", multiscaleTypeValue);
       }
+      AxialGeoMultiscaleMapping::MultiscaleAxis multiscaleAxisValue;
+      if (multiscaleAxis == "X") {
+        multiscaleAxisValue = AxialGeoMultiscaleMapping::X;
+      } else if (multiscaleAxis == "Y") {
+        multiscaleAxisValue = AxialGeoMultiscaleMapping::Y;
+      } else if (multiscaleAxis == "Z") {
+        multiscaleAxisValue = AxialGeoMultiscaleMapping::Z;
+      } else {
+        PRECICE_ERROR("Unknown axis \"{}\". Known axes are \"X\", \"Y\", and \"Z\".", multiscaleAxis);
+      }
       configuredMapping.mapping = PtrMapping(
-          new AxialGeoMultiscaleMapping(constraintValue, dimensions, multiscaleTypeValue, radius));
+          new AxialGeoMultiscaleMapping(constraintValue, dimensions, multiscaleTypeValue, multiscaleAxisValue, radius));
+      configuredMapping.isRBF = false;
+    } else if (type == VALUE_RADIAL_GEOMETRIC_MULTISCALE) {
+
+      RadialGeoMultiscaleMapping::MultiscaleType multiscaleTypeValue;
+      if (multiscaleType == "spread") {
+        multiscaleTypeValue = RadialGeoMultiscaleMapping::SPREAD;
+      } else if (multiscaleType == "collect") {
+        multiscaleTypeValue = RadialGeoMultiscaleMapping::COLLECT;
+      } else {
+        PRECICE_ERROR("Unknown geometric multiscale type \"{}\". Known types are \"spread\" and \"collect\".", multiscaleType);
+      }
+      RadialGeoMultiscaleMapping::MultiscaleAxis multiscaleAxisValue;
+      if (multiscaleAxis == "X") {
+        multiscaleAxisValue = RadialGeoMultiscaleMapping::X;
+      } else if (multiscaleAxis == "Y") {
+        multiscaleAxisValue = RadialGeoMultiscaleMapping::Y;
+      } else if (multiscaleAxis == "Z") {
+        multiscaleAxisValue = RadialGeoMultiscaleMapping::Z;
+      } else {
+        PRECICE_ERROR("Unknown axis \"{}\". Known axes are \"X\", \"Y\", and \"Z\".", multiscaleAxis);
+      }
+      configuredMapping.mapping = PtrMapping(
+          new RadialGeoMultiscaleMapping(constraintValue, dimensions, multiscaleTypeValue, multiscaleAxisValue));
       configuredMapping.isRBF = false;
     } else {
       PRECICE_ERROR("Unknown mapping type!");

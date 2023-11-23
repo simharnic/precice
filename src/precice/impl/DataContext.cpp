@@ -1,6 +1,8 @@
-#include "precice/impl/DataContext.hpp"
 #include <memory>
+#include <set>
 #include <utility>
+
+#include "precice/impl/DataContext.hpp"
 #include "utils/EigenHelperFunctions.hpp"
 
 namespace precice::impl {
@@ -85,20 +87,40 @@ bool DataContext::hasMapping() const
   return hasReadMapping() || hasWriteMapping();
 }
 
-void DataContext::mapData()
+void DataContext::mapData(std::optional<double> after)
 {
+  PRECICE_TRACE(getMeshName(), getDataName(), after.value_or(-666));
   PRECICE_ASSERT(hasMapping());
-  // Execute the mapping
+  PRECICE_ASSERT(after.value_or(0) >= 0.0, "Invalid time");
+
+  // Execute the mappings
   for (auto &context : _mappingContexts) {
+    PRECICE_ASSERT(!context.fromData->stamples().empty(),
+                   "There must be samples at this point!");
+
     // Reset the toData before mapping any samples
-    context.clearToDataStorage(); // @todo needs optimization: We don't need to map the data at the beginning of the window, because it should be known from the last window where it was the data from the window end. Exception: Data initialization. Related to https://github.com/precice/precice/issues/1707
-    PRECICE_ASSERT(context.fromData->stamples().size() > 0);
+    if (after) {
+      context.toData->timeStepsStorage().trimAfter(*after);
+    } else {
+      context.clearToDataStorage();
+    }
+
+    const auto existing = [&] {
+      auto times = context.toData->timeStepsStorage().getTimes();
+      return std::set<double>{times.data(), times.data() + times.size()};
+    }();
 
     auto &mapping = *context.mapping;
 
     const auto dataDims = context.fromData->getDimensions();
 
     for (const auto &stample : context.fromData->stamples()) {
+      // skip existing stamples
+      if (existing.count(stample.timestamp) > 0) {
+        PRECICE_DEBUG("Skipping stample t={}", stample.timestamp);
+        continue;
+      }
+
       PRECICE_INFO("Mapping \"{}\" for t={} from \"{}\" to \"{}\"",
                    getDataName(), stample.timestamp, mapping.getInputMesh()->getName(), mapping.getOutputMesh()->getName());
       time::Sample outSample{

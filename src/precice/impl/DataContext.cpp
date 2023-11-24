@@ -1,5 +1,5 @@
+#include <iterator>
 #include <memory>
-#include <set>
 #include <utility>
 
 #include "precice/impl/DataContext.hpp"
@@ -105,10 +105,12 @@ void DataContext::mapData(std::optional<double> after)
       context.clearToDataStorage();
     }
 
-    const auto existing = [&] {
-      auto times = context.toData->timeStepsStorage().getTimes();
-      return std::set<double>{times.data(), times.data() + times.size()};
-    }();
+    // linear lookup should be sufficient here
+    const auto timestampExists = [times = context.toData->timeStepsStorage().getTimes()](double lookup) {
+      return std::any_of(times.data(), std::next(times.data(), times.size()), [lookup](double time) {
+        return math::equals(time, lookup);
+      });
+    };
 
     auto &mapping = *context.mapping;
 
@@ -116,7 +118,7 @@ void DataContext::mapData(std::optional<double> after)
 
     for (const auto &stample : context.fromData->stamples()) {
       // skip existing stamples
-      if (existing.count(stample.timestamp) > 0) {
+      if (timestampExists(stample.timestamp)) {
         PRECICE_DEBUG("Skipping stample t={}", stample.timestamp);
         continue;
       }

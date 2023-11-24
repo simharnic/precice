@@ -91,7 +91,6 @@ void DataContext::mapData(std::optional<double> after)
 {
   PRECICE_TRACE(getMeshName(), getDataName(), after.value_or(-666));
   PRECICE_ASSERT(hasMapping());
-  PRECICE_ASSERT(after.value_or(0) >= 0.0, "Invalid time");
 
   // Execute the mappings
   for (auto &context : _mappingContexts) {

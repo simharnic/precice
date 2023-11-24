@@ -101,7 +101,7 @@ void DataContext::mapData(std::optional<double> after)
     if (after) {
       context.toData->timeStepsStorage().trimAfter(*after);
     } else {
-      context.clearToDataStorage();
+      PRECICE_ASSERT(context.toData->timeStepsStorage().empty());
     }
 
     // linear lookup should be sufficient here

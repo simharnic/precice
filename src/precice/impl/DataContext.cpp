@@ -101,11 +101,12 @@ void DataContext::mapData(std::optional<double> after)
     if (after) {
       context.toData->timeStepsStorage().trimAfter(*after);
     } else {
-      PRECICE_ASSERT(context.toData->timeStepsStorage().empty());
+      PRECICE_ASSERT(context.toData->timeStepsStorage().empty(),
+                     "This happens only in initialize at which point there shouldn't be any samples.");
     }
 
     // linear lookup should be sufficient here
-    const auto timestampExists = [times = context.toData->timeStepsStorage().getTimes()](double lookup) {
+    const auto timestampExists = [times = context.toData->timeStepsStorage().getTimes()](double lookup) -> bool {
       return std::any_of(times.data(), std::next(times.data(), times.size()), [lookup](double time) {
         return math::equals(time, lookup);
       });

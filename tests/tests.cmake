@@ -135,6 +135,11 @@ target_sources(testprecice
     tests/serial/lifecycle/reconstruction/ConstructOnly.cpp
     tests/serial/lifecycle/reconstruction/Full.cpp
     tests/serial/lifecycle/reconstruction/ImplicitFinalize.cpp
+    tests/serial/map-if-necessary/two-solvers/ParallelExplicit.cpp
+    tests/serial/map-if-necessary/two-solvers/ParallelImplicit.cpp
+    tests/serial/map-if-necessary/two-solvers/SerialExplicit.cpp
+    tests/serial/map-if-necessary/two-solvers/SerialImplicit.cpp
+    tests/serial/map-if-necessary/two-solvers/helper.hpp
     tests/serial/mapping-nearest-neighbor-gradient/GradientTestBidirectionalReadScalar.cpp
     tests/serial/mapping-nearest-neighbor-gradient/GradientTestBidirectionalReadVector.cpp
     tests/serial/mapping-nearest-neighbor-gradient/GradientTestBidirectionalWriteScalar.cpp
